@@ -23,7 +23,7 @@ public class TestDrawMesh : MonoBehaviour
     private bool m_receiveShadows;
 
     [SerializeField]
-    private LayerMask m_layer;
+    private string m_layerName;
 
     [SerializeField]
     private Camera m_camera;
@@ -39,6 +39,7 @@ public class TestDrawMesh : MonoBehaviour
 
     private ComputeBuffer m_eulerAngleBuffer;
 
+    private int m_layer;
 
     // Start is called before the first frame update
     void Start()
@@ -46,6 +47,8 @@ public class TestDrawMesh : MonoBehaviour
         InitializeArgsBuffer();
         InitializePositionBuffer();
         InitializeEulerAngleBuffer();
+
+        m_layer = LayerMask.NameToLayer(m_layerName);
     }
 
     // Update is called once per frame
@@ -100,10 +103,7 @@ public class TestDrawMesh : MonoBehaviour
 
         }
 
-        if(m_positionBuffer != null)
-            m_positionBuffer.Release();
-
-        m_positionBuffer = new ComputeBuffer(m_instanceCount, 4 * 4);
+        m_positionBuffer = new ComputeBuffer(m_instanceCount, 4 * 4); // 4 * 4 = (floatのbyte）* (要素数)
         m_positionBuffer.SetData(positions);
 
         m_instanceMaterial.SetBuffer("positionBuffer", m_positionBuffer);
@@ -124,7 +124,6 @@ public class TestDrawMesh : MonoBehaviour
         m_eulerAngleBuffer.SetData(angles);
 
         m_instanceMaterial.SetBuffer("eulerAngleBuffer", m_eulerAngleBuffer);
-
 
     }
 
