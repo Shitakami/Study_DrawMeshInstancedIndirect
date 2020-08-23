@@ -171,9 +171,7 @@ MonoBehaviour:
     m_Extent: {x: 200, y: 200, z: 200}
   m_shadowCastingMode: 0
   m_receiveShadows: 0
-  m_layer:
-    serializedVersion: 2
-    m_Bits: 0
+  m_layerName: UI
   m_camera: {fileID: 0}
   m_instanceCount: 100000
 --- !u!1 &705507993

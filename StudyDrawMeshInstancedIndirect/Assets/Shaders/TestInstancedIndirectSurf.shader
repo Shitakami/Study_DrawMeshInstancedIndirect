@@ -14,9 +14,9 @@
 
         CGPROGRAM
         // Physically based Standard lighting model, and enable shadows on all light types
-        #pragma surface surf Standard addshadow fullforwardshadows
-        #pragma multi_compile_instancing
-        #pragma instancing_options procedural:setup
+        #pragma surface surf Standard addshadow fullforwardshadows // 影を描画するためにはaddshadowが必要
+        #pragma multi_compile_instancing    // GPU Instancingを可能にする
+        #pragma instancing_options procedural:setup // setup関数を呼び出す
 
         sampler2D _MainTex;
 
@@ -43,7 +43,6 @@
                 sy*cx, cy*cx, -sx, 0,
                 -sz*cy + cz*sx*sy, sy*sz + cz*sx*cy, cz*cx, 0,
                 0, 0, 0, 1);
-
 
         }
 
