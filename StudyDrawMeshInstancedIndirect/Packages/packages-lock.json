@@ -15,7 +15,11 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.ide.rider": {
+<<<<<<< HEAD
       "version": "1.1.4",
+=======
+      "version": "2.0.7",
+>>>>>>> dfd148f7eca4e00ed5a936f1b0d5bf5946f51f80
       "depth": 0,
       "source": "registry",
       "dependencies": {
