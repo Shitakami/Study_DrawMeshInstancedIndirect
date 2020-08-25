@@ -171,9 +171,9 @@ MonoBehaviour:
     m_Extent: {x: 200, y: 200, z: 200}
   m_shadowCastingMode: 0
   m_receiveShadows: 0
-  m_layerName: UI
+  m_layerName: 
   m_camera: {fileID: 0}
-  m_instanceCount: 100000
+  m_instanceCount: 1000000
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
