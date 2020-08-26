@@ -1,4 +1,4 @@
-﻿Shader "Custom/TestInstancedIndirectSurf"
+﻿Shader "Custom/InstancedWithMove"
 {
     Properties
     {
@@ -25,9 +25,16 @@
             float2 uv_MainTex;
         };
 
+        struct CubeParameter {
+            float3 position;
+            float3 angle;
+            float scale;
+            float randTime;
+            float baseHeight;
+        };
+
 #ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-    StructuredBuffer<float4> positionBuffer;
-    StructuredBuffer<float3> eulerAngleBuffer;
+    StructuredBuffer<CubeParameter> cubeParamBuffer;
 #endif
 
         #define Deg2Rad 0.0174532924
@@ -49,19 +56,20 @@
         void setup() {
 
         #ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-            float4 data = positionBuffer[unity_InstanceID];
-            float3 angles = eulerAngleBuffer[unity_InstanceID];
+            float3 position = cubeParamBuffer[unity_InstanceID].position;
+            float3 angle = cubeParamBuffer[unity_InstanceID].angle;
+            float scale = cubeParamBuffer[unity_InstanceID].scale;
 
             // スケーリング
-            unity_ObjectToWorld._11_21_31_41 = float4(data.w, 0, 0, 0);
-            unity_ObjectToWorld._12_22_32_42 = float4(0, data.w, 0, 0);
-            unity_ObjectToWorld._13_23_33_43 = float4(0, 0, data.w, 0);
+            unity_ObjectToWorld._11_21_31_41 = float4(scale, 0, 0, 0);
+            unity_ObjectToWorld._12_22_32_42 = float4(0, scale, 0, 0);
+            unity_ObjectToWorld._13_23_33_43 = float4(0, 0, scale, 0);
 
             // 回転
-            unity_ObjectToWorld = mul(eulerAnglesToRottationMatrix(angles), unity_ObjectToWorld);
+            unity_ObjectToWorld = mul(eulerAnglesToRottationMatrix(angle), unity_ObjectToWorld);
 
             // 座標
-            unity_ObjectToWorld._14_24_34_44 = float4(data.xyz, 1);
+            unity_ObjectToWorld._14_24_34_44 = float4(position, 1);
 
             // モデル行列を求める（間違っているかも. . .）
             // 参考:https://qiita.com/yuji_yasuhara/items/8d63455d1d277af4c270
@@ -70,9 +78,9 @@
             unity_WorldToObject._11_12_13 = unity_ObjectToWorld._11_21_31;
             unity_WorldToObject._21_22_23 = unity_ObjectToWorld._12_22_32;
             unity_WorldToObject._31_32_33 = unity_ObjectToWorld._13_23_33;
-            unity_WorldToObject._11_12_13 /= data.w * data.w;
-            unity_WorldToObject._21_22_23 /= data.w * data.w;
-            unity_WorldToObject._31_32_33 /= data.w * data.w;
+            unity_WorldToObject._11_12_13 /= scale * scale;
+            unity_WorldToObject._21_22_23 /= scale * scale;
+            unity_WorldToObject._31_32_33 /= scale * scale;
         #endif
 
         }

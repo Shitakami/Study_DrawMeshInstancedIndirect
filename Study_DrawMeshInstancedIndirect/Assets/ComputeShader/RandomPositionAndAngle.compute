@@ -1,0 +1,31 @@
+﻿#pragma kernel ChangeCubeParameter
+
+struct CubeParameter {
+    float3 position;
+    float3 angle;
+    float scale;
+    float randTime;
+    float baseHeight;
+};
+
+RWStructuredBuffer<CubeParameter> cubeParamBuffer;
+
+float _Time;
+float rotateSpeed;
+float moveSpeed;
+float moveHeight;
+
+
+[numthreads(64, 1, 1)]
+void ChangeCubeParameter(uint id : SV_DISPATCHTHREADID) {
+
+    cubeParamBuffer[id.x].angle.x += rotateSpeed * _Time;
+
+    float time = cubeParamBuffer[id.x].randTime + _Time * moveSpeed;
+    cubeParamBuffer[id.x].randTime = time;
+
+    float baseHeight = cubeParamBuffer[id.x].baseHeight;
+
+    cubeParamBuffer[id.x].position.y = baseHeight + sin(time) * moveHeight;
+
+}
