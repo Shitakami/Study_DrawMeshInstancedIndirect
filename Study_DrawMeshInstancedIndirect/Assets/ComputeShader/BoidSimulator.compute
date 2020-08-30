@@ -106,7 +106,7 @@ void BoidsCalculation(uint id : SV_DISPATCHTHREADID) {
             cohesionCount++;
         }
         if(sqrDistance < separationDistance && angle < separationAngle) {
-            separationPositionSum += posX - posY;
+            separationPositionSum += normalize(posX - posY) / sqrt(sqrDistance);        
         }
         if(sqrDistance < alignmentDistance && angle < alignmentAngle) {
             alignmentVelocitySum += velY;
@@ -121,10 +121,10 @@ void BoidsCalculation(uint id : SV_DISPATCHTHREADID) {
     float3 boundary = float3(0, 0, 0);
 
     if(cohesionCount != 0)
-        cohesion = (cohesionPositionSum / cohesionCount - posX) * cohesionForce;
+        cohesion = (cohesionPositionSum / (float)cohesionCount - posX) * cohesionForce;
     
     if(alignmentCount != 0) 
-        alignment = (alignmentVelocitySum / alignmentCount - velX) * alignmentForce;
+        alignment = (alignmentVelocitySum / (float)alignmentCount - velX) * alignmentForce;
     
     separation *= separationForce;
 
@@ -132,13 +132,13 @@ void BoidsCalculation(uint id : SV_DISPATCHTHREADID) {
     if(sqrDistFromCenter > boundaryRange)
         boundary = -boundaryForce * posX * (sqrDistFromCenter - boundaryRange) / sqrDistFromCenter;
 
-    float3 acc = avoidWall(posX) * boundaryForce;
+  //  float3 acc = avoidWall(posX) * boundaryForce;
 
     cohesion = limit(cohesion, maxForce);
     separation = limit(separation, maxForce);
     alignment = limit(alignment, maxForce);
 
-    velX += (cohesion + separation + alignment + acc) * deltaTime;
+    velX += (cohesion + separation + alignment + boundary) * deltaTime;
 
 
     float velXScale = length(velX);

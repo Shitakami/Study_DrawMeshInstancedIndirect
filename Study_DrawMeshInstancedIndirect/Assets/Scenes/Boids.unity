@@ -172,17 +172,17 @@ MonoBehaviour:
   m_shadowCastingMode: 0
   m_receiveShadows: 0
   m_instanceCount: 30000
-  m_cohesionForce: 0.01
-  m_separationForce: 15
-  m_alignmentForce: 10
+  m_cohesionForce: 0.5
+  m_separationForce: 10
+  m_alignmentForce: 6
   m_cohesionDistance: 5
-  m_separationDistance: 1
-  m_alignmentDistance: 3
-  m_cohesionAngle: 10
-  m_separationAngle: 10
-  m_alignmentAngle: 10
+  m_separationDistance: 3
+  m_alignmentDistance: 5
+  m_cohesionAngle: 1.5707964
+  m_separationAngle: 1.5707964
+  m_alignmentAngle: 1.0471976
   m_boundaryForce: 1
-  m_boundaryRange: 10
+  m_boundaryRange: 150
   m_maxVelocity: 0.5
   m_minVelocity: 0.1
   m_maxForce: 2
