@@ -42,7 +42,7 @@
         StructuredBuffer<BoidsData> boidsDataBuffer;
         #endif
 
-        float4x4 eulerAnglesToRottationMatrix(float3 angles) {
+        float4x4 eulerAnglesToRotationMatrix(float3 angles) {
 
             float cx = cos(angles.x); float sx = sin(angles.x);
             float cy = cos(angles.z); float sy = sin(angles.z);
@@ -53,6 +53,32 @@
                 sy*cx, cy*cx, -sx, 0,
                 -sz*cy + cz*sx*sy, sy*sz + cz*sx*cy, cz*cx, 0,
                 0, 0, 0, 1);
+
+        }
+
+        float4x4 CalcInverseMatrix(float3 position, float3 angle, float3 scale) {
+
+            float4x4 inversScaleeMatrix = float4x4(
+                1/scale.x, 0, 0, -position.x,
+                0, 1/scale.y, 0, -position.y,
+                0, 0, 1/scale.z, -position.z,
+                0, 0, 0, 1);
+
+            float4x4 mat = float4x4(
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1);
+
+            float4x4 rotMatrix = mul(eulerAnglesToRotationMatrix(angle), mat);
+
+            float4x4 inverseRotMatrix = float4x4(
+                rotMatrix._11, rotMatrix._21, rotMatrix._31, 0,
+                rotMatrix._12, rotMatrix._22, rotMatrix._32, 0,
+                rotMatrix._13, rotMatrix._23, rotMatrix._33, 0,
+                0, 0, 0, 1);
+
+            return mul(inversScaleeMatrix, inverseRotMatrix);
 
         }
 
@@ -71,27 +97,24 @@
             unity_ObjectToWorld._12_22_32_42 = float4(0, _ScaleY, 0, 0);
             unity_ObjectToWorld._13_23_33_43 = float4(0, 0, _ScaleZ, 0);
 
+            // 速度から回転を求める
             float3 angle = float3(
-                -asin(velocity.y/length(velocity.xyz)),
+                -asin(velocity.y/(length(velocity.xyz) + 1e-8)), // 0除算防止
                 atan2(velocity.x, velocity.z),
                 0);
 
             // 回転
-            unity_ObjectToWorld = mul(eulerAnglesToRottationMatrix(angle), unity_ObjectToWorld);
+            unity_ObjectToWorld = mul(eulerAnglesToRotationMatrix(angle), unity_ObjectToWorld);
 
             // 座標
             unity_ObjectToWorld._14_24_34_44 = float4(position, 1);
 
             // モデル行列を求める（間違っているかも. . .）
             // 参考:https://qiita.com/yuji_yasuhara/items/8d63455d1d277af4c270
-            unity_WorldToObject = unity_ObjectToWorld;
-            unity_WorldToObject._14_24_34 *= -1;
-            unity_WorldToObject._11_12_13 = unity_ObjectToWorld._11_21_31;
-            unity_WorldToObject._21_22_23 = unity_ObjectToWorld._12_22_32;
-            unity_WorldToObject._31_32_33 = unity_ObjectToWorld._13_23_33;
-            unity_WorldToObject._11_12_13 = normalize(unity_WorldToObject._11_12_13);
-            unity_WorldToObject._21_22_23 = normalize(unity_WorldToObject._21_22_23);
-            unity_WorldToObject._31_32_33 = normalize(unity_WorldToObject._31_32_33);
+            // 参考:http://gamemakerlearning.blog.fc2.com/blog-entry-196.html
+            unity_WorldToObject = CalcInverseMatrix(position, angle, float3(_ScaleX, _ScaleY, _ScaleZ));
+
+
         #endif
 
         }

@@ -31,42 +31,42 @@ public class Boids : MonoBehaviour
     [Header("力の強さ")]
     [Header("Boidsモデルのデータ")]
     [SerializeField]
-    private float m_cohesionForce = 0.008f;
+    private float m_cohesionForce = 5f;
     [SerializeField]
-    private float m_separationForce = 0.4f;
+    private float m_separationForce = 5f;
     [SerializeField]
-    private float m_alignmentForce = 0.06f;
+    private float m_alignmentForce = 2f;
 
     [Space(5)]
     [Header("力の働く距離")]
     [SerializeField]
-    private float m_cohesionDistance = 0.5f;
+    private float m_cohesionDistance = 10f;
     [SerializeField]
-    private float m_separationDistance = 0.05f;
+    private float m_separationDistance = 6f;
     [SerializeField]
-    private float m_alignmentDistance = 0.1f;
+    private float m_alignmentDistance = 8f;
 
     [Space(5)]
     [Header("力の働く角度")]
     [SerializeField]
-    private float m_cohesionAngle = Mathf.PI / 2;
+    private float m_cohesionAngle = 90f;
     [SerializeField]
-    private float m_separationAngle = Mathf.PI / 2;
+    private float m_separationAngle = 90f;
     [SerializeField]
-    private float m_alignmentAngle = Mathf.PI / 3;
+    private float m_alignmentAngle = 60f;
 
     [Space(5)]
     [SerializeField]
-    private float m_boundaryForce = 0.001f;
+    private float m_boundaryForce = 1;
     [SerializeField]
-    private float m_boundaryRange = 1f;
+    private float m_boundaryRange = 35f;
 
     [Space(5)]
     [SerializeField]
-    private float m_maxVelocity = 0.03f;
+    private float m_maxVelocity = 0.1f;
 
     [SerializeField]
-    private float m_minVelocity = 0.005f;
+    private float m_minVelocity = 0.05f;
 
     [SerializeField]    
     private float m_maxForce = 1f;
@@ -107,8 +107,6 @@ public class Boids : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
-        // Boidsモデルの計算をここで行う
         BoidsCalc();
 
     }
@@ -170,13 +168,15 @@ public class Boids : MonoBehaviour
         m_boidsSimulator.SetFloat("separationForce", m_separationForce);
         m_boidsSimulator.SetFloat("alignmentForce", m_alignmentForce);
 
-        m_boidsSimulator.SetFloat("cohesionDistance", m_cohesionDistance * m_cohesionDistance);
-        m_boidsSimulator.SetFloat("separationDistance", m_separationDistance * m_separationDistance);
-        m_boidsSimulator.SetFloat("alignmentDistance", m_alignmentDistance * m_alignmentDistance);
+        // ComputeShader内の距離判定で2乗の値を使用しているので合わせる
+        m_boidsSimulator.SetFloat("cohesionDistance", m_cohesionDistance);
+        m_boidsSimulator.SetFloat("separationDistance", m_separationDistance);
+        m_boidsSimulator.SetFloat("alignmentDistance", m_alignmentDistance);
 
-        m_boidsSimulator.SetFloat("cohesionAngle", m_cohesionAngle);
-        m_boidsSimulator.SetFloat("separationAngle", m_separationAngle);
-        m_boidsSimulator.SetFloat("alignmentAngle", m_alignmentAngle);
+        // ComputeShader内ではラジアンで判定するので度数方からラジアンに変更する
+        m_boidsSimulator.SetFloat("cohesionAngle", m_cohesionAngle * Mathf.Deg2Rad);
+        m_boidsSimulator.SetFloat("separationAngle", m_separationAngle * Mathf.Deg2Rad);
+        m_boidsSimulator.SetFloat("alignmentAngle", m_alignmentAngle * Mathf.Deg2Rad);
 
         m_boidsSimulator.SetFloat("boundaryForce", m_boundaryForce);
         m_boidsSimulator.SetFloat("boundaryRange", m_boundaryRange * m_boundaryRange);

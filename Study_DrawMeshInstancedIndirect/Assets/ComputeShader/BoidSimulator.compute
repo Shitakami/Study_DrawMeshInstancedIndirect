@@ -60,23 +60,7 @@ float3 limit(float3 vec, float max)
 	return (length > max && length > 0) ? vec.xyz * (max / length) : vec.xyz;
 }
 
-// 壁に当たった時に逆向きの力を返す
-float3 avoidWall(float3 position)
-{
-float3 wc = float3(0, 0, 0);
-float3 ws = float3(boundaryRange, boundaryRange, boundaryRange);
-float3 acc = float3(0, 0, 0);
-// x
-acc.x = (position.x < wc.x - ws.x * 0.5) ? acc.x + 1.0 : acc.x;
-acc.x = (position.x > wc.x + ws.x * 0.5) ? acc.x - 1.0 : acc.x;
-// y
-acc.y = (position.y < wc.y - ws.y * 0.5) ? acc.y + 1.0 : acc.y;
-acc.y = (position.y > wc.y + ws.y * 0.5) ? acc.y - 1.0 : acc.y;
-// z
-acc.z = (position.z < wc.z - ws.z * 0.5) ? acc.z + 1.0 : acc.z;
-acc.z = (position.z > wc.z + ws.z * 0.5) ? acc.z - 1.0 : acc.z;
-return acc;
-}
+
 
 [numthreads(256, 1, 1)]
 void BoidsCalculation(uint id : SV_DISPATCHTHREADID) {
@@ -92,6 +76,8 @@ void BoidsCalculation(uint id : SV_DISPATCHTHREADID) {
     int alignmentCount = 0;
 
     for(uint i = 0; i < instanceCount; ++i) {
+
+        // 自身の計算は行わない
         if(i == id.x)
             continue;
 
@@ -101,13 +87,18 @@ void BoidsCalculation(uint id : SV_DISPATCHTHREADID) {
         float sqrDistance = CalcSqrDistance(posX, posY);
         float angle = CalcAngle(velX, posX, posY);
 
+        // 結合
         if(sqrDistance < cohesionDistance && angle < cohesionAngle) {
             cohesionPositionSum += posY;
             cohesionCount++;
         }
+
+        // 分離
         if(sqrDistance < separationDistance && angle < separationAngle) {
             separationPositionSum += normalize(posX - posY) / sqrt(sqrDistance);        
         }
+
+        // 整列
         if(sqrDistance < alignmentDistance && angle < alignmentAngle) {
             alignmentVelocitySum += velY;
             alignmentCount++;
@@ -128,21 +119,21 @@ void BoidsCalculation(uint id : SV_DISPATCHTHREADID) {
     
     separation *= separationForce;
 
+    // 範囲外から出た個体は範囲内に戻る力を加える
     float sqrDistFromCenter = dot(posX, posX);
     if(sqrDistFromCenter > boundaryRange)
         boundary = -boundaryForce * posX * (sqrDistFromCenter - boundaryRange) / sqrDistFromCenter;
 
-  //  float3 acc = avoidWall(posX) * boundaryForce;
-
+    // 結合、分離、整列の力を制限
     cohesion = limit(cohesion, maxForce);
     separation = limit(separation, maxForce);
     alignment = limit(alignment, maxForce);
 
     velX += (cohesion + separation + alignment + boundary) * deltaTime;
 
-
     float velXScale = length(velX);
 
+    // 速度を制限
     if(velXScale < minVelocity) {
         velX = minVelocity * normalize(velX);
     }
