@@ -1,7 +1,4 @@
-﻿// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel BoidsCalculation
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
+﻿#pragma kernel BoidsCalculation
 
 struct BoidsData {
     float3 position;

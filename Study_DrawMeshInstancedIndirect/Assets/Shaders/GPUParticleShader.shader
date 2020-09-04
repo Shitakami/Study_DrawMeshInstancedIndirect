@@ -1,4 +1,4 @@
-﻿Shader "Custom/InstancedWithMove"
+﻿Shader "Custom/GPUParticleShader"
 {
     Properties
     {
@@ -14,9 +14,12 @@
 
         CGPROGRAM
         // Physically based Standard lighting model, and enable shadows on all light types
-        #pragma surface surf Standard addshadow fullforwardshadows // 影を描画するためにはaddshadowが必要
-        #pragma multi_compile_instancing    // GPU Instancingを可能にする
-        #pragma instancing_options procedural:setup // setup関数を呼び出す
+        #pragma surface surf Standard addshadow fullforwardshadows
+        #pragma multi_compile_instancing
+        #pragma instancing_options procedural:setup
+
+        // Use shader model 3.0 target, to get nicer looking lighting
+        #pragma target 3.0
 
         sampler2D _MainTex;
 
@@ -25,21 +28,22 @@
             float2 uv_MainTex;
         };
 
-        struct CubeParameter {
+        struct Particle {
             float3 position;
+            float3 velocity;
             float3 angle;
+            float duration;
             float scale;
-            float randTime;
-            float baseHeight;
+            bool isActive;
         };
 
 #ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-    StructuredBuffer<CubeParameter> cubeParamBuffer;
+    StructuredBuffer<Particle> _ParticleBuffer;
 #endif
 
         #define Deg2Rad 0.0174532924
 
-        float4x4 eulerAnglesToRotationMatrix(float3 angles) {
+        float4x4 eulerAnglesToRottationMatrix(float3 angles) {
 
             float cx = cos(angles.x * Deg2Rad); float sx = sin(angles.x * Deg2Rad);
             float cy = cos(angles.z * Deg2Rad); float sy = sin(angles.z * Deg2Rad);
@@ -52,40 +56,16 @@
                 0, 0, 0, 1);
 
         }
-        
-        float4x4 CalcInverseMatrix(float3 position, float3 angle, float3 scale) {
-
-            float4x4 inversScaleeMatrix = float4x4(
-                1/scale.x, 0, 0, -position.x,
-                0, 1/scale.y, 0, -position.y,
-                0, 0, 1/scale.z, -position.z,
-                0, 0, 0, 1);
-
-            float4x4 mat = float4x4(
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 1);
-
-            float4x4 rotMatrix = mul(eulerAnglesToRotationMatrix(angle), mat);
-
-            float4x4 inverseRotMatrix = float4x4(
-                rotMatrix._11, rotMatrix._21, rotMatrix._31, 0,
-                rotMatrix._12, rotMatrix._22, rotMatrix._32, 0,
-                rotMatrix._13, rotMatrix._23, rotMatrix._33, 0,
-                0, 0, 0, 1);
-
-            return mul(inversScaleeMatrix, inverseRotMatrix);
-
-        }
-
 
         void setup() {
 
         #ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-            float3 position = cubeParamBuffer[unity_InstanceID].position;
-            float3 angle = cubeParamBuffer[unity_InstanceID].angle;
-            float scale = cubeParamBuffer[unity_InstanceID].scale;
+            float3 position = _ParticleBuffer[unity_InstanceID].position;
+            float3 angle = _ParticleBuffer[unity_InstanceID].angle;
+            float scale = _ParticleBuffer[unity_InstanceID].scale;
+
+            // LifeTime == 1の場合、生成されて消えるまで180度回転する
+            angle += (1 - _ParticleBuffer[unity_InstanceID].duration) * 180;
 
             // スケーリング
             unity_ObjectToWorld._11_21_31_41 = float4(scale, 0, 0, 0);
@@ -93,24 +73,21 @@
             unity_ObjectToWorld._13_23_33_43 = float4(0, 0, scale, 0);
 
             // 回転
-            unity_ObjectToWorld = mul(eulerAnglesToRotationMatrix(angle), unity_ObjectToWorld);
+            unity_ObjectToWorld = mul(eulerAnglesToRottationMatrix(angle), unity_ObjectToWorld);
 
             // 座標
             unity_ObjectToWorld._14_24_34_44 = float4(position, 1);
 
             // モデル行列を求める（間違っているかも. . .）
             // 参考:https://qiita.com/yuji_yasuhara/items/8d63455d1d277af4c270
-            // unity_WorldToObject = unity_ObjectToWorld;
-            // unity_WorldToObject._14_24_34 *= -1;
-            // unity_WorldToObject._11_12_13 = unity_ObjectToWorld._11_21_31;
-            // unity_WorldToObject._21_22_23 = unity_ObjectToWorld._12_22_32;
-            // unity_WorldToObject._31_32_33 = unity_ObjectToWorld._13_23_33;
-            // unity_WorldToObject._11_12_13 /= scale * scale;
-            // unity_WorldToObject._21_22_23 /= scale * scale;
-            // unity_WorldToObject._31_32_33 /= scale * scale;
-
-            unity_WorldToObject = CalcInverseMatrix(position, angle, float3(scale, scale, scale));
-
+            unity_WorldToObject = unity_ObjectToWorld;
+            unity_WorldToObject._14_24_34 *= -1;
+            unity_WorldToObject._11_12_13 = unity_ObjectToWorld._11_21_31;
+            unity_WorldToObject._21_22_23 = unity_ObjectToWorld._12_22_32;
+            unity_WorldToObject._31_32_33 = unity_ObjectToWorld._13_23_33;
+            unity_WorldToObject._11_12_13 /= scale * scale;
+            unity_WorldToObject._21_22_23 /= scale * scale;
+            unity_WorldToObject._31_32_33 /= scale * scale;
         #endif
 
         }
@@ -130,12 +107,12 @@
         void surf (Input IN, inout SurfaceOutputStandard o)
         {
             // Albedo comes from a texture tinted by color
-            fixed4 cy = tex2D (_MainTex, IN.uv_MainTex) * _Color;
-            o.Albedo = cy.rgb;
+            fixed4 c = tex2D (_MainTex, IN.uv_MainTex) * _Color;
+            o.Albedo = c.rgb;
             // Metallic and smoothness come from slider variables
             o.Metallic = _Metallic;
             o.Smoothness = _Glossiness;
-            o.Alpha = cy.a;
+            o.Alpha = c.a;
         }
         ENDCG
     }

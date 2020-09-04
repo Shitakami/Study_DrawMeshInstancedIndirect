@@ -1,0 +1,116 @@
+﻿#pragma kernel InitializeParticles
+#pragma kernel EmitParticles
+#pragma kernel UpdateParticles
+
+#define Deg2Rad 0.0174532924
+#define PI 3.14159274
+
+struct Particle {
+    float3 position;
+    float3 velocity;
+    float3 angle;
+    float duration;
+    float scale;
+    bool isActive;
+};
+
+
+RWStructuredBuffer<Particle> particles;
+AppendStructuredBuffer<uint> deadList;
+ConsumeStructuredBuffer<uint> particlePool;
+
+float lifeTime;
+float force;
+float forceAngle;
+float gravity;
+float scale;
+
+float deltaTime;
+float Time;
+
+// 乱数生成
+inline float rnd(float2 p){
+    return frac(sin(dot(p ,float2(12.9898, 78.233))) * 43758.5453);
+}
+
+float4x4 eulerAnglesToRotationMatrix(float3 angles) {
+
+    float cx = cos(angles.x); float sx = sin(angles.x);
+    float cy = cos(angles.z); float sy = sin(angles.z);
+    float cz = cos(angles.y); float sz = sin(angles.y);
+
+    return float4x4(
+        cz*cy + sz*sx*sy, -cz*sy + sz*sx*cy, sz*cx, 0,
+        sy*cx, cy*cx, -sx, 0,
+        -sz*cy + cz*sx*sy, sy*sz + cz*sx*cy, cz*cx, 0,
+        0, 0, 0, 1);
+
+}
+
+float3 CalcAngle(float id) {
+
+    float x = rnd(float2(deltaTime + id*3.951, deltaTime-2*id));
+    float y = rnd(float2(Time+id*1.23, Time+id*3.14));
+    float z = rnd(float2(deltaTime+Time+id*0.987, Time/deltaTime+id*3.23));
+
+    return float3(x*180.0, y*180.0, z*180.0);
+
+}
+
+// 上方向からangle以下傾けた速度を返す
+float3 CalcVelocity(float angle, float id) {
+
+    float4 vel = float4(0, force, 0, 1);
+    float angleY = rnd(float2(Time + id*2.978, Time - deltaTime + id*1.098))*2*PI;
+    float angleX = rnd(float2(Time + deltaTime - id*2.131, Time + id*4.521))*angle*Deg2Rad;
+
+    vel = mul(eulerAnglesToRotationMatrix(float3(angleX, angleY, 0)), vel);
+
+    return float3(vel.x, vel.y, vel.z);
+
+}
+
+
+[numthreads(8, 1, 1)]
+void InitializeParticles(uint id : SV_DISPATCHTHREADID) {
+
+    particles[id.x].isActive = false;
+
+    deadList.Append(id.x);
+
+}
+
+
+[numthreads(8, 1, 1)]
+void EmitParticles() {
+
+    uint id = particlePool.Consume();
+    particles[id].isActive = true;
+
+    particles[id].position = float3(0, 0, 0);
+    particles[id].velocity = CalcVelocity(forceAngle, id);
+    particles[id].angle = CalcAngle(id);
+    particles[id].duration = lifeTime;
+    particles[id].scale = scale;
+
+}
+
+
+[numthreads(8, 1, 1)]
+void UpdateParticles(uint id : SV_DISPATCHTHREADID) {
+
+    if(particles[id.x].isActive) {
+
+        particles[id.x].velocity -= float3(0, gravity * deltaTime, 0);
+        particles[id.x].position += particles[id.x].velocity * deltaTime;
+        particles[id.x].duration = max(0, particles[id.x].duration - deltaTime);
+        particles[id.x].scale = lerp(scale, 0, 1 - particles[id.x].duration/lifeTime);
+
+        if(particles[id.x].duration <= 0) {
+            particles[id.x].isActive = false;
+            deadList.Append(id.x);
+        }
+
+    }
+
+}
